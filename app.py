@@ -174,7 +174,14 @@ if uploaded_file is not None:
         st.write(
             input_df.columns.tolist()
         )
-                # ---------------- SCALE ----------------
+        st.write("Scaler Columns")
+        st.write(list(scaler.feature_names_in_))
+
+        st.write("Input Columns")
+        st.write(list(input_df.columns))
+        st.write("Scaler Shape:", len(scaler.feature_names_in_))
+        st.write("Input Shape:", len(input_df.columns))
+        # ---------------- SCALE ----------------
 
         scaled_data = scaler.transform(input_df)
 
