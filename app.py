@@ -163,22 +163,7 @@ if uploaded_file is not None:
 
         input_df = input_df.astype(float)
 
-        # Debug
-
-        st.subheader("🔍 Debug Information")
-
-        st.write(
-            "Final Columns Count:",
-            len(input_df.columns)
-        )
-
-        st.write(
-            input_df.columns.tolist()
-        )
-        st.write("Scaler Columns")
-        st.write(list(scaler.feature_names_in_))
-
-        st.write("Input Columns")
+        
         st.write(list(input_df.columns))
         st.write("Scaler Shape:", len(scaler.feature_names_in_))
         st.write("Input Shape:", len(input_df.columns))
