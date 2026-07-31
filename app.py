@@ -123,79 +123,77 @@ if uploaded_file is not None and predict:
         input_df = input_df.drop("ID", axis=1)
 
     # Fill missing values
-        input_df = input_df.fillna(0)
+    input_df = input_df.fillna(0)
 
     # One-Hot Encoding
-        input_df = pd.get_dummies(input_df)
+    input_df = pd.get_dummies(input_df)
 
     # Match Training Columns
-        input_df = input_df.reindex(
+    input_df = input_df.reindex(
         columns=training_columns,
         fill_value=0
-)
+    )
 
     # Convert bool to int
-        bool_cols = input_df.select_dtypes(include=["bool"]).columns
-        input_df[bool_cols] = input_df[bool_cols].astype(int)
+    bool_cols = input_df.select_dtypes(include=["bool"]).columns
+    input_df[bool_cols] = input_df[bool_cols].astype(int)
 
-    # Convert everything to numeric
-        input_df = input_df.astype(float)
+    # Convert all columns to float
+    input_df = input_df.astype(float)
 
-    # Scale data
+    # ==========================
+    # DEBUG INFORMATION
+    # ==========================
+
+    st.subheader("🔍 Debug Information")
+
+    st.write("Training Columns Count:", len(training_columns))
+    st.write("Input Columns Count:", len(input_df.columns))
+
+    missing_cols = set(training_columns) - set(input_df.columns)
+    extra_cols = set(input_df.columns) - set(training_columns)
+
+    st.write("Missing Columns:")
+    st.write(list(missing_cols))
+
+    st.write("Extra Columns:")
+    st.write(list(extra_cols))
+
+    st.write("Training Columns:")
+    st.write(training_columns)
+
+    st.write("Input Columns:")
+    st.write(list(input_df.columns))
+
+    # ==========================
+    # SCALING
+    # ==========================
+
+    try:
+
         scaled_data = scaler.transform(input_df)
 
-    # Predict All Customers
-    clusters = kmeans.predict(scaled_data)
+        clusters = kmeans.predict(scaled_data)
 
-    df["Cluster"] = clusters
+        df["Cluster"] = clusters
 
-    cluster_names = {
-        0: "Stable Customer",
-        1: "Premium Customer",
-        2: "Young Customer"
-    }
+        cluster_names = {
+            0: "Stable Customer",
+            1: "Premium Customer",
+            2: "Young Customer"
+        }
 
-    df["Segment"] = df["Cluster"].map(cluster_names)
+        df["Segment"] = df["Cluster"].map(cluster_names)
 
-    st.success("Segmentation Completed Successfully")
+        st.success("✅ Segmentation Completed Successfully")
 
-    st.subheader("📊 Segmented Customers")
+        st.subheader("📊 Segmented Customers")
+        st.dataframe(df)
 
-    st.dataframe(df)
+        st.subheader("📈 Segment Distribution")
+        st.bar_chart(df["Segment"].value_counts())
 
-    st.subheader("📈 Segment Distribution")
+    except Exception as e:
 
-    cluster_counts = df["Segment"].value_counts()
-
-    st.bar_chart(cluster_counts)
-
-    st.subheader("📋 Segment Summary")
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.metric(
-            "Stable Customers",
-            int((df["Cluster"] == 0).sum())
-        )
-
-    with col2:
-        st.metric(
-            "Premium Customers",
-            int((df["Cluster"] == 1).sum())
-        )
-
-    with col3:
-        st.metric(
-            "Young Customers",
-            int((df["Cluster"] == 2).sum())
-        )
-
-    csv = df.to_csv(index=False)
-
-    st.download_button(
-        label="📥 Download Segmented Dataset",
-        data=csv,
-        file_name="segmented_customers.csv",
-        mime="text/csv"
-    )
+        st.error("Scaler Error")
+        st.exception(e)
