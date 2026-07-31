@@ -119,30 +119,30 @@ if uploaded_file is not None and predict:
     input_df = df.copy()
 
     # Remove ID column
-if "ID" in input_df.columns:
-    input_df = input_df.drop("ID", axis=1)
+    if "ID" in input_df.columns:
+        input_df = input_df.drop("ID", axis=1)
 
-# Fill missing values
-input_df = input_df.fillna(0)
+    # Fill missing values
+        input_df = input_df.fillna(0)
 
-# One-Hot Encoding
-input_df = pd.get_dummies(input_df)
+    # One-Hot Encoding
+        input_df = pd.get_dummies(input_df)
 
-# Match Training Columns
-input_df = input_df.reindex(
-    columns=training_columns,
-    fill_value=0
+    # Match Training Columns
+        input_df = input_df.reindex(
+        columns=training_columns,
+        fill_value=0
 )
 
-# Convert bool to int
-bool_cols = input_df.select_dtypes(include=["bool"]).columns
-input_df[bool_cols] = input_df[bool_cols].astype(int)
+    # Convert bool to int
+        bool_cols = input_df.select_dtypes(include=["bool"]).columns
+        input_df[bool_cols] = input_df[bool_cols].astype(int)
 
-# Convert everything to numeric
-input_df = input_df.astype(float)
+    # Convert everything to numeric
+        input_df = input_df.astype(float)
 
-# Scale data
-scaled_data = scaler.transform(input_df)
+    # Scale data
+        scaled_data = scaler.transform(input_df)
 
     # Predict All Customers
     clusters = kmeans.predict(scaled_data)
