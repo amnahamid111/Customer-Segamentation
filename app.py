@@ -12,28 +12,28 @@ import pandas as pd
 import joblib
 
 # ---------------- PAGE CONFIG ----------------
+
 st.set_page_config(
     page_title="AI Customer Segmentation",
     page_icon="👥",
     layout="wide"
 )
 
-# ---------------- LOAD FILES ----------------
+# ---------------- LOAD MODEL FILES ----------------
+
 @st.cache_resource
 def load_files():
-    model = joblib.load("kmeans_model.pkl")
+    kmeans = joblib.load("kmeans_model.pkl")
     scaler = joblib.load("scaler.pkl")
-    columns = joblib.load("columns.pkl")
-    return model, scaler, columns
+    training_columns = joblib.load("columns.pkl")
+    return kmeans, scaler, training_columns
 
 kmeans, scaler, training_columns = load_files()
 
 # ---------------- CUSTOM CSS ----------------
+
 st.markdown("""
 <style>
-.main{
-    background:#f5f7fb;
-}
 
 .title{
     font-size:38px;
@@ -49,48 +49,42 @@ st.markdown("""
 div.stButton > button{
     width:100%;
     height:55px;
-    font-size:20px;
     border-radius:12px;
     background:#0066cc;
     color:white;
+    font-size:18px;
 }
 
-div.stButton > button:hover{
-    background:#004c99;
-}
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------- SIDEBAR ----------------
-
-st.sidebar.image("https://img.icons8.com/color/96/customer-insight.png", width=90)
 
 st.sidebar.title("AI Dashboard")
 
 st.sidebar.info("""
 ### Customer Segmentation
 
-Machine Learning Algorithm
-
 ✔ K-Means Clustering
-
-Dataset
 
 ✔ 8068 Customers
 
-Purpose
-
-✔ Customer Group Analysis
+✔ Business Analytics
 """)
 
 # ---------------- HEADER ----------------
 
-st.markdown("<div class='title'>👥 AI Customer Segmentation Dashboard</div>", unsafe_allow_html=True)
+st.markdown(
+    "<div class='title'>👥 AI Customer Segmentation Dashboard</div>",
+    unsafe_allow_html=True
+)
 
-st.markdown("<div class='subtitle'>Predict which customer segment a new customer belongs to using Machine Learning.</div>", unsafe_allow_html=True)
+st.markdown(
+    "<div class='subtitle'>Upload a customer dataset and automatically segment customers.</div>",
+    unsafe_allow_html=True
+)
 
 st.divider()
-
 # ---------------- FILE UPLOAD ----------------
 
 st.subheader("📂 Upload Customer Dataset")
@@ -102,76 +96,89 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
 
+    # Read file
+
     if uploaded_file.name.endswith(".csv"):
         df = pd.read_csv(uploaded_file)
     else:
         df = pd.read_excel(uploaded_file)
 
-    st.success(f"Dataset Loaded Successfully ({len(df)} Customers)")
+    st.success(
+        f"Dataset Loaded Successfully ({len(df)} Customers)"
+    )
 
     st.subheader("Preview Dataset")
 
     st.dataframe(df.head())
 
     predict = st.button("🚀 Run Customer Segmentation")
-if uploaded_file is not None and predict:
 
-    input_df = df.copy()
+    if predict:
 
-    # Remove ID column
-    if "ID" in input_df.columns:
-        input_df = input_df.drop("ID", axis=1)
+        input_df = df.copy()
 
-    # Fill missing values
-    input_df = input_df.fillna(0)
+        # Remove ID
 
-    # One-Hot Encoding
-    input_df = pd.get_dummies(input_df)
+        if "ID" in input_df.columns:
+            input_df.drop("ID", axis=1, inplace=True)
 
-    # Match Training Columns
-    input_df = input_df.reindex(
-        columns=training_columns,
-        fill_value=0
-    )
+        # Fill Missing Values
 
-    # Convert bool to int
-    bool_cols = input_df.select_dtypes(include=["bool"]).columns
-    input_df[bool_cols] = input_df[bool_cols].astype(int)
+        input_df = input_df.fillna(0)
 
-    # Convert all columns to float
-    input_df = input_df.astype(float)
+        # SAME ENCODING AS TRAINING
 
-    # ==========================
-    # DEBUG INFORMATION
-    # ==========================
+        input_df = pd.get_dummies(
+            input_df,
+            columns=[
+                "Gender",
+                "Ever_Married",
+                "Graduated",
+                "Profession",
+                "Spending_Score",
+                "Var_1"
+            ],
+            drop_first=True
+        )
 
-    st.subheader("🔍 Debug Information")
+        # Match Training Columns
 
-    st.write("Training Columns Count:", len(training_columns))
-    st.write("Input Columns Count:", len(input_df.columns))
+        input_df = input_df.reindex(
+            columns=training_columns,
+            fill_value=0
+        )
 
-    missing_cols = set(training_columns) - set(input_df.columns)
-    extra_cols = set(input_df.columns) - set(training_columns)
+        # Convert Bool → Int
 
-    st.write("Missing Columns:")
-    st.write(list(missing_cols))
+        bool_cols = input_df.select_dtypes(
+            include=["bool"]
+        ).columns
 
-    st.write("Extra Columns:")
-    st.write(list(extra_cols))
+        input_df[bool_cols] = (
+            input_df[bool_cols].astype(int)
+        )
 
-    st.write("Training Columns:")
-    st.write(training_columns)
+        # Convert Everything to Float
 
-    st.write("Input Columns:")
-    st.write(list(input_df.columns))
+        input_df = input_df.astype(float)
 
-    # ==========================
-    # SCALING
-    # ==========================
+        # Debug
 
-    try:
+        st.subheader("🔍 Debug Information")
+
+        st.write(
+            "Final Columns Count:",
+            len(input_df.columns)
+        )
+
+        st.write(
+            input_df.columns.tolist()
+        )
+                # ---------------- SCALE ----------------
 
         scaled_data = scaler.transform(input_df)
+
+        # ---------------- PREDICT ----------------
 
         clusters = kmeans.predict(scaled_data)
 
@@ -183,17 +190,62 @@ if uploaded_file is not None and predict:
             2: "Young Customer"
         }
 
-        df["Segment"] = df["Cluster"].map(cluster_names)
+        df["Segment"] = df["Cluster"].map(
+            cluster_names
+        )
 
-        st.success("✅ Segmentation Completed Successfully")
+        st.success(
+            "✅ Customer Segmentation Completed"
+        )
+
+        # ---------------- TABLE ----------------
 
         st.subheader("📊 Segmented Customers")
+
         st.dataframe(df)
 
+        # ---------------- CHART ----------------
+
         st.subheader("📈 Segment Distribution")
-        st.bar_chart(df["Segment"].value_counts())
 
-    except Exception as e:
+        cluster_counts = (
+            df["Segment"]
+            .value_counts()
+        )
 
-        st.error("Scaler Error")
-        st.exception(e)
+        st.bar_chart(cluster_counts)
+
+        # ---------------- METRICS ----------------
+
+        st.subheader("📋 Segment Summary")
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.metric(
+                "Stable Customers",
+                int((df["Cluster"] == 0).sum())
+            )
+
+        with col2:
+            st.metric(
+                "Premium Customers",
+                int((df["Cluster"] == 1).sum())
+            )
+
+        with col3:
+            st.metric(
+                "Young Customers",
+                int((df["Cluster"] == 2).sum())
+            )
+
+        # ---------------- DOWNLOAD ----------------
+
+        csv = df.to_csv(index=False)
+
+        st.download_button(
+            label="📥 Download Segmented Dataset",
+            data=csv,
+            file_name="segmented_customers.csv",
+            mime="text/csv"
+        )
