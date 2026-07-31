@@ -144,9 +144,10 @@ if uploaded_file is not None:
         # Match Training Columns
 
         input_df = input_df.reindex(
-            columns=training_columns,
+            columns=scaler.feature_names_in_,
             fill_value=0
         )
+        input_df = input_df.astype(float)
 
         # Convert Bool → Int
 
@@ -181,8 +182,11 @@ if uploaded_file is not None:
         st.write(list(input_df.columns))
         st.write("Scaler Shape:", len(scaler.feature_names_in_))
         st.write("Input Shape:", len(input_df.columns))
+        st.write(input_df.dtypes)
+        input_df = input_df.apply(pd.to_numeric, errors="coerce")
+        input_df = input_df.fillna(0)
         # ---------------- SCALE ----------------
-
+        
         scaled_data = scaler.transform(input_df)
 
         # ---------------- PREDICT ----------------
